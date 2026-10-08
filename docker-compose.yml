@@ -1,13 +1,15 @@
-version: '3.8'
 services:
   backend:
-    build: ./mern-demo/server
+    build:
+      context: ./mern-demo/server
+      dockerfile: Dockerfile
     ports:
       - "5000:5000"
     environment:
       - PORT=5000
-      - MONGODB_URI=mongodb+srv://test:test@cluster0.mongodb.net/test
   frontend:
-    build: ./mern-demo
+    build:
+      context: ./mern-demo/client
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "5173:5173"
