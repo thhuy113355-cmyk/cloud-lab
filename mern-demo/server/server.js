@@ -1,29 +1,24 @@
-global.crypto = require('crypto');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+const Student = require('./models/Student.js');
+
 const app = express();
 
-// Middleware
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type']
-}));
-
+app.use(cors());
 app.use(express.json());
 
-// Kết nối MongoDB Atlas
+// Thêm route gốc để không bị lỗi Cannot GET /
+app.get('/', (req, res) => {
+  res.send('MERN Stack Backend API is running successfully!');
+});
+
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Đã kết nối MongoDB Atlas'))
   .catch(err => console.error('Lỗi kết nối MongoDB:', err));
 
-// Import Model
-const Student = require('./models/Student');
-
-// Route Lấy danh sách sinh viên
 app.get('/api/students', async (req, res) => {
   try {
     const students = await Student.find();
@@ -33,36 +28,30 @@ app.get('/api/students', async (req, res) => {
   }
 });
 
-// Route Thêm sinh viên mới
 app.post('/api/students', async (req, res) => {
   try {
-    const newStudent = new Student(req.body);
-    const savedStudent = await newStudent.save();
-    res.status(201).json(savedStudent);
+    const { code, name, email } = req.body;
+    const student = await Student.create({ code, name, email });
+    res.status(201).json(student);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// Route Cập nhật sinh viên
-app.put('/api/students/:id', async (req, res) => {
+app.delete('/api/students/code/:code', async (req, res) => {
   try {
-    const updatedStudent = await Student.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    res.json(updatedStudent);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+    const student = await Student.findOneAndDelete({
+      $or: [
+        { code: req.params.code },
+        { studentId: req.params.code }
+      ]
+    });
 
-// Route Xóa sinh viên
-app.delete('/api/students/:id', async (req, res) => {
-  try {
-    await Student.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Đã xóa sinh viên thành công' });
+    if (!student) {
+      return res.status(404).json({ error: 'Không tìm thấy mã sinh viên' });
+    }
+
+    res.json({ message: 'Đã xóa sinh viên' });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -70,5 +59,5 @@ app.delete('/api/students/:id', async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server đang chạy tại port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
